@@ -27,6 +27,14 @@ function backToSettingsRow() {
   return [inlineButton("⬅️ Back to settings", "settings:show")];
 }
 
+function isValidTimeFormat(time: string): boolean {
+  const m = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return false;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  return h >= 0 && h <= 23 && min >= 0 && min <= 59;
+}
+
 composer.command("settings", async (ctx) => {
   await showSettings(ctx, undefined);
 });
@@ -252,9 +260,9 @@ composer.on("message:text").filter(
   (ctx) => (ctx.session as SettingsSession).settingsStep === "awaiting_quiet_start",
   async (ctx) => {
     const time = ctx.message.text.trim();
-    if (!/^\d{1,2}:\d{2}$/.test(time)) {
+    if (!isValidTimeFormat(time)) {
       await ctx.reply(
-        "Please enter a valid time in HH:MM format (e.g. 22:00):",
+        "Please enter a valid time in HH:MM format (hours 00-23, minutes 00-59, e.g. 22:00):",
         { reply_markup: inlineKeyboard([backToSettingsRow()]) },
       );
       return;
@@ -274,9 +282,9 @@ composer.on("message:text").filter(
   (ctx) => (ctx.session as SettingsSession).settingsStep === "awaiting_quiet_end",
   async (ctx) => {
     const time = ctx.message.text.trim();
-    if (!/^\d{1,2}:\d{2}$/.test(time)) {
+    if (!isValidTimeFormat(time)) {
       await ctx.reply(
-        "Please enter a valid time in HH:MM format (e.g. 07:00):",
+        "Please enter a valid time in HH:MM format (hours 00-23, minutes 00-59, e.g. 07:00):",
         { reply_markup: inlineKeyboard([backToSettingsRow()]) },
       );
       return;
@@ -371,9 +379,9 @@ composer.on("message:text").filter(
   (ctx) => (ctx.session as SettingsSession).settingsStep === "awaiting_summary_time",
   async (ctx) => {
     const time = ctx.message.text.trim();
-    if (!/^\d{1,2}:\d{2}$/.test(time)) {
+    if (!isValidTimeFormat(time)) {
       await ctx.reply(
-        "Please enter a valid time in HH:MM format (e.g. 06:30):",
+        "Please enter a valid time in HH:MM format (hours 00-23, minutes 00-59, e.g. 06:30):",
         { reply_markup: inlineKeyboard([backToSettingsRow()]) },
       );
       return;

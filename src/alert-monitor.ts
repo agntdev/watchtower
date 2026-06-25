@@ -10,28 +10,31 @@ import {
   getUser,
   getAllUserIds,
   getWatchlistEntries,
+  getLastSummarySent,
+  setLastSummarySent,
 } from "./store.js";
-import { fetchPrices } from "./coingecko.js";
+import { fetchPrices, type CoinPrice } from "./coingecko.js";
 import { inlineButton, inlineKeyboard } from "./toolkit/index.js";
 
-let pollingInterval: ReturnType<typeof setInterval> | null = null;
-let summaryInterval: ReturnType<typeof setInterval> | null = null;
+let alertCheckTimer: ReturnType<typeof setTimeout> | null = null;
+let summaryCheckTimer: ReturnType<typeof setTimeout> | null = null;
 let botInstance: Bot<Ctx> | null = null;
+let alertCheckRunning = false;
+let summaryCheckRunning = false;
 
 export function startAlertMonitor(bot: Bot<Ctx>) {
   botInstance = bot;
-  if (pollingInterval) clearInterval(pollingInterval);
-  if (summaryInterval) clearInterval(summaryInterval);
+  stopAlertMonitor();
 
-  pollingInterval = setInterval(checkAlerts, 5 * 60 * 1000);
-  summaryInterval = setInterval(checkMorningSummaries, 60 * 1000);
+  scheduleAlertCheck();
+  scheduleSummaryCheck();
 
   setTimeout(() => void checkAlerts(), 10_000);
 }
 
 export function stopAlertMonitor() {
-  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-  if (summaryInterval) { clearInterval(summaryInterval); summaryInterval = null; }
+  if (alertCheckTimer) { clearTimeout(alertCheckTimer); alertCheckTimer = null; }
+  if (summaryCheckTimer) { clearTimeout(summaryCheckTimer); summaryCheckTimer = null; }
   botInstance = null;
 }
 
@@ -208,10 +211,19 @@ export function getLocalMinutes(tz: string, reference?: Date): number {
   return (utcMinutes + offsetMinutes + 1440) % 1440;
 }
 
+function isValidTimePart(time: string): boolean {
+  const m = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return false;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  return h >= 0 && h <= 23 && min >= 0 && min <= 59;
+}
+
 export function isInQuietHours(user: { quietHoursStart: string; quietHoursEnd: string; timezone: string }, reference?: Date): boolean {
   const currentMinutes = getLocalMinutes(user.timezone, reference);
 
   const parseTime = (t: string): number => {
+    if (!isValidTimePart(t)) return 0;
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
   };
@@ -227,41 +239,100 @@ export function isInQuietHours(user: { quietHoursStart: string; quietHoursEnd: s
   return currentMinutes >= start || currentMinutes < end;
 }
 
+function fiatSymbol(fiat: string): string {
+  const map: Record<string, string> = {
+    usd: "$", eur: "€", gbp: "£", jpy: "¥", krw: "₩", cny: "¥", inr: "₹", aud: "A$", cad: "C$",
+  };
+  return map[fiat.toLowerCase()] ?? fiat.toUpperCase() + " ";
+}
+
+function formatPrice(price: number, fiatSym: string): string {
+  const fiat = fiatSym;
+  if (price < 0.01) return `${fiat}${price.toFixed(6)}`;
+  if (price < 1) return `${fiat}${price.toFixed(4)}`;
+  return `${fiat}${price.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 8 })}`;
+}
+
+async function scheduleAlertCheck() {
+  alertCheckTimer = setTimeout(scheduleAlertCheck, 5 * 60 * 1000);
+  if (alertCheckRunning) return;
+  alertCheckRunning = true;
+  try {
+    await checkAlerts();
+  } finally {
+    alertCheckRunning = false;
+  }
+}
+
+async function scheduleSummaryCheck() {
+  summaryCheckTimer = setTimeout(scheduleSummaryCheck, 60 * 1000);
+  if (summaryCheckRunning) return;
+  summaryCheckRunning = true;
+  try {
+    await checkMorningSummaries();
+  } finally {
+    summaryCheckRunning = false;
+  }
+}
+
 async function checkAlerts() {
   if (!botInstance) return;
 
   const allUserIds = await getAllUserIds();
-  const coinSet = new Set<string>();
-
-  for (const uid of allUserIds) {
-    const thresholds = await getThresholdAlerts(uid);
-    const percents = await getPercentMoveRules(uid);
-    for (const a of thresholds) { if (a.enabled) coinSet.add(a.coinId); }
-    for (const p of percents) { if (p.enabled) coinSet.add(p.coinId); }
-  }
-
-  if (coinSet.size === 0) return;
-
-  const coinIds = [...coinSet];
-  const prices = await fetchPrices(coinIds, "usd");
-  if (prices.size === 0) return;
+  const fiatCoinMap = new Map<string, Set<string>>();
+  const userDataCache = new Map<number, {
+    thresholds: Awaited<ReturnType<typeof getThresholdAlerts>>;
+    percents: Awaited<ReturnType<typeof getPercentMoveRules>>;
+    fiat: string;
+  }>();
 
   for (const uid of allUserIds) {
     const user = await getUser(uid);
     const thresholds = await getThresholdAlerts(uid);
     const percents = await getPercentMoveRules(uid);
+    const fiat = user.defaultFiat.toLowerCase();
+
+    userDataCache.set(uid, { thresholds, percents, fiat });
+
+    if (!fiatCoinMap.has(fiat)) fiatCoinMap.set(fiat, new Set());
+    const coinSet = fiatCoinMap.get(fiat)!;
+    for (const a of thresholds) { if (a.enabled) coinSet.add(a.coinId); }
+    for (const p of percents) { if (p.enabled) coinSet.add(p.coinId); }
+  }
+
+  const priceMap = new Map<string, Map<string, CoinPrice>>();
+  for (const [fiat, coinSet] of fiatCoinMap) {
+    if (coinSet.size === 0) continue;
+    const prices = await fetchPrices([...coinSet], fiat);
+    if (prices.size > 0) priceMap.set(fiat, prices);
+  }
+
+  if (priceMap.size === 0) return;
+
+  for (const uid of allUserIds) {
+    const cached = userDataCache.get(uid);
+    if (!cached) continue;
+
+    const user = await getUser(uid);
+    const thresholds = cached.thresholds;
+    const percents = cached.percents;
+    const fiatKey = cached.fiat;
+    const fiatSym = fiatSymbol(fiatKey);
+
+    const prices = priceMap.get(fiatKey);
+    if (!prices || prices.size === 0) continue;
 
     const now = Date.now();
     const quiet = isInQuietHours(user);
 
     for (const alert of thresholds) {
       if (!alert.enabled) continue;
-      const price = prices.get(alert.coinId);
-      if (!price || price.price == null) continue;
+      const priceData = prices.get(alert.coinId);
+      if (!priceData || priceData.price == null) continue;
 
       const triggered =
-        (alert.direction === "above" && price.price > alert.threshold) ||
-        (alert.direction === "below" && price.price < alert.threshold);
+        (alert.direction === "above" && priceData.price > alert.threshold) ||
+        (alert.direction === "below" && priceData.price < alert.threshold);
       if (!triggered) continue;
 
       const ago = alert.lastTriggeredAt ? now - alert.lastTriggeredAt : Infinity;
@@ -270,7 +341,7 @@ async function checkAlerts() {
       await updateThresholdAlert(uid, alert.id, { lastTriggeredAt: now });
 
       const oldPrice = alert.threshold;
-      const pctChange = ((price.price - oldPrice) / oldPrice) * 100;
+      const pctChange = ((priceData.price - oldPrice) / oldPrice) * 100;
       const dirLabel = alert.direction === "above" ? "↑ above" : "↓ below";
 
       await addAlertHistory({
@@ -280,7 +351,7 @@ async function checkAlerts() {
         coinId: alert.coinId,
         ticker: alert.ticker,
         oldPrice,
-        newPrice: price.price,
+        newPrice: priceData.price,
         percentChange: pctChange,
         timestamp: now,
       });
@@ -290,8 +361,8 @@ async function checkAlerts() {
       try {
         await botInstance.api.sendMessage(
           uid,
-          `🚨 ${alert.ticker} is ${dirLabel} $${alert.threshold.toLocaleString("en")}\n` +
-          `Current price: $${price.price.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ` +
+          `🚨 ${alert.ticker} is ${dirLabel} ${formatPrice(alert.threshold, fiatSym)}\n` +
+          `Current price: ${formatPrice(priceData.price, fiatSym)} ` +
           `(${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(2)}%)`,
           {
             reply_markup: inlineKeyboard([[
@@ -307,12 +378,12 @@ async function checkAlerts() {
 
     for (const rule of percents) {
       if (!rule.enabled) continue;
-      const price = prices.get(rule.coinId);
-      if (!price || price.price == null) continue;
+      const priceData = prices.get(rule.coinId);
+      if (!priceData || priceData.price == null) continue;
 
       if (rule.basePrice === null) {
         await updatePercentMoveRule(uid, rule.id, {
-          basePrice: price.price,
+          basePrice: priceData.price,
           basePriceSetAt: now,
         });
         continue;
@@ -321,7 +392,7 @@ async function checkAlerts() {
       const elapsed = now - (rule.basePriceSetAt ?? 0);
       if (elapsed < rule.timeframeMinutes * 60 * 1000 && elapsed > 0) continue;
 
-      const pctChange = ((price.price - rule.basePrice) / rule.basePrice) * 100;
+      const pctChange = ((priceData.price - rule.basePrice) / rule.basePrice) * 100;
       const absPct = Math.abs(pctChange);
 
       let triggered = false;
@@ -331,7 +402,7 @@ async function checkAlerts() {
 
       if (!triggered) {
         await updatePercentMoveRule(uid, rule.id, {
-          basePrice: price.price,
+          basePrice: priceData.price,
           basePriceSetAt: now,
         });
         continue;
@@ -340,14 +411,14 @@ async function checkAlerts() {
       const ago = rule.lastTriggeredAt ? now - rule.lastTriggeredAt : Infinity;
       if (ago < user.cooldownMinutes * 60 * 1000) {
         await updatePercentMoveRule(uid, rule.id, {
-          basePrice: price.price,
+          basePrice: priceData.price,
           basePriceSetAt: now,
         });
         continue;
       }
 
       await updatePercentMoveRule(uid, rule.id, {
-        basePrice: price.price,
+        basePrice: priceData.price,
         basePriceSetAt: now,
         lastTriggeredAt: now,
       });
@@ -361,7 +432,7 @@ async function checkAlerts() {
         coinId: rule.coinId,
         ticker: rule.ticker,
         oldPrice: rule.basePrice,
-        newPrice: price.price,
+        newPrice: priceData.price,
         percentChange: pctChange,
         timestamp: now,
       });
@@ -375,7 +446,7 @@ async function checkAlerts() {
         await botInstance.api.sendMessage(
           uid,
           `🚨 ${rule.ticker} moved ${dirLabel} ${absPct.toFixed(1)}% in ${tfLabel}\n` +
-          `Current price: $${price.price.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`,
+          `Current price: ${formatPrice(priceData.price, fiatSym)}`,
           {
             reply_markup: inlineKeyboard([[
               inlineButton("🔕 Snooze 1h", `alert:snooze:percent:${rule.id}`),
@@ -404,6 +475,10 @@ async function checkMorningSummaries() {
     const localM = localMinutes % 60;
     const localTime = `${String(localH).padStart(2, "0")}:${String(localM).padStart(2, "0")}`;
     if (user.summaryTime !== localTime) continue;
+
+    const lastSent = await getLastSummarySent(uid);
+    const now = Date.now();
+    if (lastSent && (now - lastSent) < 24 * 60 * 60 * 1000) continue;
 
     const entries = await getWatchlistEntries(uid);
     if (entries.length === 0) continue;
@@ -447,6 +522,7 @@ async function checkMorningSummaries() {
 
     try {
       await botInstance.api.sendMessage(uid, lines.join("\n"));
+      await setLastSummarySent(uid, now);
     } catch {
       // User may have blocked bot
     }
