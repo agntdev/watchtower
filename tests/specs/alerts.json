@@ -1,0 +1,46 @@
+[
+  {
+    "name": "/alerts shows empty state",
+    "steps": [
+      {
+        "send": { "text": "/alerts" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "No alerts configured yet. Set a price threshold or percent-move alert to get notified." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/set_threshold on empty watchlist",
+    "steps": [
+      {
+        "send": { "text": "/set_threshold" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Add coins to your watchlist first, then set alerts for them." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/set_percent_rule on empty watchlist",
+    "steps": [
+      {
+        "send": { "text": "/set_percent_rule" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Add coins to your watchlist first, then set alerts for them." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "alerts menu button shows empty state via edit",
+    "steps": [
+      {
+        "send": { "callback": "alerts:list" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "No alerts configured yet. Set a price threshold or percent-move alert to get notified." } }
+        ]
+      }
+    ]
+  }
+]

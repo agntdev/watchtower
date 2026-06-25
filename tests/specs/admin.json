@@ -1,0 +1,41 @@
+[
+  {
+    "name": "/admin blocked for non-owner",
+    "steps": [
+      {
+        "send": { "text": "/admin" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "This command is only available to the bot owner." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/claim_owner claims ownership",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ You are now the bot owner. Use /admin to view analytics." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/admin accessible after claiming owner",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      },
+      {
+        "send": { "text": "/admin" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "🔐 Owner Dashboard\n\nTotal users: 0\nTotal alerts triggered: 0\nBot status: running" } }
+        ]
+      }
+    ]
+  }
+]
