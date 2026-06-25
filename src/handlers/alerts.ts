@@ -677,4 +677,45 @@ composer.callbackQuery(/^alerts:do_delete_percent:(.+):no$/, async (ctx) => {
   });
 });
 
+// Snooze/Disable from triggered alert messages
+composer.callbackQuery(/^alert:snooze:\d+:(.+):(threshold|percent)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const alertId = ctx.match[1];
+  const type = ctx.match[2];
+
+  if (type === "threshold") {
+    await updateThresholdAlert(ctx.from!.id, alertId, {
+      lastTriggeredAt: Date.now() + 3600 * 1000,
+    });
+    await ctx.reply("🔇 Alert snoozed for 1 hour.", {
+      reply_markup: inlineKeyboard([[inlineButton("⬅️ Back to alerts", "alerts:list")]]),
+    });
+  } else {
+    await updatePercentMoveRule(ctx.from!.id, alertId, {
+      lastTriggeredAt: Date.now() + 3600 * 1000,
+    });
+    await ctx.reply("🔇 Alert snoozed for 1 hour.", {
+      reply_markup: inlineKeyboard([[inlineButton("⬅️ Back to alerts", "alerts:list")]]),
+    });
+  }
+});
+
+composer.callbackQuery(/^alert:disable:\d+:(.+):(threshold|percent)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const alertId = ctx.match[1];
+  const type = ctx.match[2];
+
+  if (type === "threshold") {
+    await updateThresholdAlert(ctx.from!.id, alertId, { enabled: false });
+    await ctx.reply("⛔ Alert disabled.", {
+      reply_markup: inlineKeyboard([[inlineButton("⬅️ Back to alerts", "alerts:list")]]),
+    });
+  } else {
+    await updatePercentMoveRule(ctx.from!.id, alertId, { enabled: false });
+    await ctx.reply("⛔ Alert disabled.", {
+      reply_markup: inlineKeyboard([[inlineButton("⬅️ Back to alerts", "alerts:list")]]),
+    });
+  }
+});
+
 export default composer;

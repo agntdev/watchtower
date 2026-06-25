@@ -223,6 +223,51 @@ export async function getAllUserIds(): Promise<number[]> {
   return userKeys.map((k) => parseInt(k.slice(USR.length), 10)).filter((n) => !isNaN(n));
 }
 
+export async function getTopAlertCoins(limit = 5): Promise<{ ticker: string; count: number }[]> {
+  const alertKeys = await storeKeys(`${AH}*`);
+  const coinCounts = new Map<string, number>();
+  for (const k of alertKeys) {
+    const raw = await get(k);
+    if (raw) {
+      try {
+        const records = JSON.parse(raw) as AlertHistoryRecord[];
+        for (const r of records) {
+          const ticker = r.ticker.toLowerCase();
+          coinCounts.set(ticker, (coinCounts.get(ticker) ?? 0) + 1);
+        }
+      } catch { /* skip corrupt */ }
+    }
+  }
+  return [...coinCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([ticker, count]) => ({ ticker: ticker.toUpperCase(), count }));
+}
+
+export async function getUserAlertCount(telegramId: number): Promise<number> {
+  const raw = await get(`${AH}${telegramId}`);
+  if (!raw) return 0;
+  try {
+    return (JSON.parse(raw) as unknown[]).length;
+  } catch {
+    return 0;
+  }
+}
+
+export async function getAllAlertHistoryRecords(): Promise<AlertHistoryRecord[]> {
+  const alertKeys = await storeKeys(`${AH}*`);
+  const all: AlertHistoryRecord[] = [];
+  for (const k of alertKeys) {
+    const raw = await get(k);
+    if (raw) {
+      try {
+        all.push(...(JSON.parse(raw) as AlertHistoryRecord[]));
+      } catch { /* skip corrupt */ }
+    }
+  }
+  return all;
+}
+
 let _idCounter = 0;
 export function generateId(): string {
   _idCounter++;

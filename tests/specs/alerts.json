@@ -42,5 +42,73 @@
         ]
       }
     ]
+  },
+  {
+    "name": "add BTC and create threshold alert flow",
+    "steps": [
+      {
+        "send": { "text": "/add" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Select a coin to track, or search for a custom one:" } }
+        ]
+      },
+      {
+        "send": { "callback": "watchlist:add_coin:bitcoin:BTC" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Added BTC to your watchlist." } }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:threshold_start" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Select a coin for the threshold alert:" } }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:threshold_coin:bitcoin:BTC" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Set a price threshold for BTC. Enter the price (e.g. 50000):" } }
+        ]
+      },
+      {
+        "send": { "text": "50000" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "⚡ Threshold alert set: BTC at $50,000" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "threshold alert management: disable and delete",
+    "steps": [
+      {
+        "send": { "callback": "alerts:manage_threshold" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Manage your threshold alerts:" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "view alerts list with configured alerts",
+    "steps": [
+      {
+        "send": { "callback": "alerts:list" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "add ETH and create percent move alert flow",
+    "steps": [
+      {
+        "send": { "callback": "watchlist:add" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Select a coin to track, or search for a custom one:" } }
+        ]
+      }
+    ]
   }
 ]

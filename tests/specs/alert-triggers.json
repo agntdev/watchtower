@@ -1,0 +1,46 @@
+[
+  {
+    "name": "snooze a threshold alert from trigger message",
+    "steps": [
+      {
+        "send": { "callback": "alert:snooze:12345:ta_test:threshold" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "🔇 Alert snoozed for 1 hour." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "disable a threshold alert from trigger message",
+    "steps": [
+      {
+        "send": { "callback": "alert:disable:12345:ta_test:threshold" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "⛔ Alert disabled." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "snooze a percent alert from trigger message",
+    "steps": [
+      {
+        "send": { "callback": "alert:snooze:12345:pm_test:percent" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "🔇 Alert snoozed for 1 hour." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "disable a percent alert from trigger message",
+    "steps": [
+      {
+        "send": { "callback": "alert:disable:12345:pm_test:percent" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "⛔ Alert disabled." } }
+        ]
+      }
+    ]
+  }
+]

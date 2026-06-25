@@ -59,6 +59,13 @@ describe("buildBot handler loader", () => {
     expect(suite.passed).toBeGreaterThan(0);
   });
 
+  it("alert trigger callbacks: snooze and disable from alert messages", async () => {
+    const specs = loadSpecs("alert-triggers");
+    const suite = await runSpecs(() => buildBot("test-token"), specs);
+    expect(suite.failed).toBe(0);
+    expect(suite.passed).toBeGreaterThan(0);
+  });
+
   it("settings features: /settings, /quiet_hours, /summary_time", async () => {
     const specs = loadSpecs("settings");
     const suite = await runSpecs(() => buildBot("test-token"), specs);
