@@ -1,7 +1,6 @@
 import { Composer } from "grammy";
 import type { Ctx } from "../bot.js";
 import {
-  registerMainMenuItem,
   inlineButton,
   inlineKeyboard,
 } from "../toolkit/index.js";
@@ -12,8 +11,6 @@ import {
   getTotalAlertCount,
   getTopAlertTickers,
 } from "../store.js";
-
-registerMainMenuItem({ label: "🔐 Admin", data: "admin:show", order: 90 });
 
 const composer = new Composer<Ctx>();
 

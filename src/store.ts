@@ -70,6 +70,17 @@ const PM = "pm:";
 const AH = "ah:";
 const OWNER = "owner:identity";
 
+const LS = "ls:";
+
+export async function getLastSummarySent(telegramId: number): Promise<number | null> {
+  const raw = await get(`${LS}${telegramId}`);
+  return raw ? Number(raw) : null;
+}
+
+export async function setLastSummarySent(telegramId: number, timestamp: number): Promise<void> {
+  await set(`${LS}${telegramId}`, String(timestamp));
+}
+
 export async function getOwnerId(): Promise<number | null> {
   const raw = await get(OWNER);
   return raw ? Number(raw) : null;
