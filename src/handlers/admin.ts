@@ -10,11 +10,16 @@ import {
   setOwnerId,
   getUserCount,
   getTotalAlertCount,
+  getTopAlertCoins,
+  getAllAlertHistoryRecords,
+  getAllUserIds,
 } from "../store.js";
 
 registerMainMenuItem({ label: "🔐 Admin", data: "admin:show", order: 90 });
 
 const composer = new Composer<Ctx>();
+
+const botStartedAt = Date.now();
 
 function backRow() {
   return [inlineButton("⬅️ Back to menu", "menu:main")];
@@ -48,12 +53,43 @@ composer.callbackQuery("admin:show", async (ctx) => {
 async function showAdmin(ctx: Ctx, edit: true | undefined) {
   const userCount = await getUserCount();
   const alertCount = await getTotalAlertCount();
+  const topCoins = await getTopAlertCoins(5);
 
-  const text =
+  const uptimeMs = Date.now() - botStartedAt;
+  const uptimeHours = Math.floor(uptimeMs / 3600000);
+  const uptimeMinutes = Math.floor((uptimeMs % 3600000) / 60000);
+
+  const memUsage = process.memoryUsage();
+  const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+
+  let text =
     `🔐 Owner Dashboard\n\n` +
     `Total users: ${userCount}\n` +
     `Total alerts triggered: ${alertCount}\n` +
-    `Bot status: running`;
+    `Uptime: ${uptimeHours}h ${uptimeMinutes}m\n` +
+    `Memory: ${memMB} MB\n`;
+
+  if (topCoins.length > 0) {
+    text += "\n📊 Top Alert Coins:\n";
+    for (const c of topCoins) {
+      text += `${c.ticker}: ${c.count} alerts\n`;
+    }
+  } else {
+    text += "\n📊 Top Alert Coins:\nNo alerts yet.";
+  }
+
+  const allRecords = await getAllAlertHistoryRecords();
+  const thresholdCount = allRecords.filter((r) => r.alertType === "threshold").length;
+  const percentCount = allRecords.filter((r) => r.alertType === "percent_move").length;
+  text += `\nThreshold alerts: ${thresholdCount}\n% Move alerts: ${percentCount}`;
+
+  const userIds = await getAllUserIds();
+  const now = Date.now();
+  const recent24h = allRecords.filter((r) => now - r.timestamp < 86400000).length;
+  text += `\nAlerts last 24h: ${recent24h}`;
+  text += `\nActive users: ${userIds.length}`;
+
+  text += "\n\nBot status: running";
 
   const keyboard = inlineKeyboard([
     [inlineButton("🔄 Refresh", "admin:show")],

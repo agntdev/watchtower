@@ -42,5 +42,135 @@
         ]
       }
     ]
+  },
+  {
+    "name": "set timezone via text input",
+    "steps": [
+      {
+        "send": { "callback": "settings:timezone" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Enter your time zone offset (e.g. UTC, UTC+3, UTC-5, EST):" } }
+        ]
+      },
+      {
+        "send": { "text": "EST" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Time zone set to EST." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set currency to EUR",
+    "steps": [
+      {
+        "send": { "callback": "settings:fiat" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Select your default currency:" } }
+        ]
+      },
+      {
+        "send": { "callback": "settings:set_fiat:eur" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Default currency set to EUR." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set cooldown to 30 minutes",
+    "steps": [
+      {
+        "send": { "callback": "settings:cooldown" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Enter alert cooldown in minutes (minimum 5, e.g. 30):" } }
+        ]
+      },
+      {
+        "send": { "text": "30" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Alert cooldown set to 30 minutes." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set quiet hours preset",
+    "steps": [
+      {
+        "send": { "callback": "settings:quiet_hours" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "callback": "settings:quiet_set:23:00_06:00" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Quiet hours set to 23:00 – 06:00." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "disable quiet hours",
+    "steps": [
+      {
+        "send": { "callback": "settings:quiet_hours" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "callback": "settings:quiet_disable" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Quiet hours disabled. Alerts will fire at any time." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set morning summary time",
+    "steps": [
+      {
+        "send": { "callback": "settings:summary_time" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "callback": "settings:summary_set:08:00" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Morning summary set to 08:00 daily." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "disable morning summary",
+    "steps": [
+      {
+        "send": { "callback": "settings:summary_time" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "callback": "settings:summary_disable" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Morning summary disabled." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "verify settings persisted after changes",
+    "steps": [
+      {
+        "send": { "text": "/settings" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      }
+    ]
   }
 ]

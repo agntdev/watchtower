@@ -174,10 +174,10 @@ async function showQuietHours(ctx: SCtx, edit: true | undefined) {
   const user = await getUser(ctx.from!.id);
 
   const quickPresets = [
-    ["🤫 22:00 – 07:00", `settings:quiet_set:22:00:07:00`],
-    ["🤫 23:00 – 06:00", `settings:quiet_set:23:00:06:00`],
-    ["🤫 00:00 – 06:00", `settings:quiet_set:00:00:06:00`],
-    ["🤫 21:00 – 09:00", `settings:quiet_set:21:00:09:00`],
+    ["🤫 22:00 – 07:00", `settings:quiet_set:22:00_07:00`],
+    ["🤫 23:00 – 06:00", `settings:quiet_set:23:00_06:00`],
+    ["🤫 00:00 – 06:00", `settings:quiet_set:00:00_06:00`],
+    ["🤫 21:00 – 09:00", `settings:quiet_set:21:00_09:00`],
     ["🔕 Disable", `settings:quiet_disable`],
     ["✏️ Custom", "settings:quiet_custom"],
   ];
@@ -195,7 +195,7 @@ async function showQuietHours(ctx: SCtx, edit: true | undefined) {
   else await ctx.reply(text, { reply_markup: inlineKeyboard(rows) });
 }
 
-composer.callbackQuery(/^settings:quiet_set:(.+):(.+)$/, async (ctx) => {
+composer.callbackQuery(/^settings:quiet_set:(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const start = ctx.match[1];
   const end = ctx.match[2];

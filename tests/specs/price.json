@@ -20,5 +20,16 @@
         ]
       }
     ]
+  },
+  {
+    "name": "/price with invalid ticker",
+    "steps": [
+      {
+        "send": { "text": "/price INVALIDTICKER" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "No coin found for \"INVALIDTICKER\". Check the ticker and try again." } }
+        ]
+      }
+    ]
   }
 ]

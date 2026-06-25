@@ -33,7 +33,7 @@
       {
         "send": { "text": "/admin" },
         "expect": [
-          { "method": "sendMessage", "payload": { "text": "🔐 Owner Dashboard\n\nTotal users: 0\nTotal alerts triggered: 0\nBot status: running" } }
+          { "method": "sendMessage" }
         ]
       }
     ]

@@ -1,5 +1,32 @@
 const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
 
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 1000;
+
+async function fetchWithRetry(
+  url: string,
+  attempt = 0,
+): Promise<Response> {
+  try {
+    const resp = await fetch(url);
+    if (resp.ok) return resp;
+    if (resp.status >= 400 && resp.status < 500) throw new Error(`CoinGecko returned ${resp.status}`);
+    if (attempt < MAX_RETRIES - 1) {
+      const delay = RETRY_BASE_MS * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, attempt + 1);
+    }
+    throw new Error(`CoinGecko price fetch failed after ${MAX_RETRIES} attempts: ${resp.status}`);
+  } catch (err) {
+    if (attempt < MAX_RETRIES - 1) {
+      const delay = RETRY_BASE_MS * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, attempt + 1);
+    }
+    throw err;
+  }
+}
+
 const TICKER_MAP: Record<string, { id: string; name: string }> = {
   btc: { id: "bitcoin", name: "Bitcoin" },
   eth: { id: "ethereum", name: "Ethereum" },
@@ -104,8 +131,7 @@ export async function searchCoins(query: string): Promise<CoinInfo[]> {
   if (results.length > 0) return results.slice(0, 10);
 
   try {
-    const resp = await fetch(`${COINGECKO_BASE}/search?query=${encodeURIComponent(q)}`);
-    if (!resp.ok) throw new Error(`CoinGecko search failed: ${resp.status}`);
+    const resp = await fetchWithRetry(`${COINGECKO_BASE}/search?query=${encodeURIComponent(q)}`);
     const data = (await resp.json()) as { coins: { id: string; symbol: string; name: string }[] };
     return (data.coins || []).slice(0, 10).map((c) => ({
       coinId: c.id,
@@ -125,10 +151,9 @@ export async function fetchPrices(
   if (coinIds.length === 0) return result;
 
   try {
-    const resp = await fetch(
+    const resp = await fetchWithRetry(
       `${COINGECKO_BASE}/simple/price?ids=${coinIds.join(",")}&vs_currencies=${fiat}&include_24hr_change=true`,
     );
-    if (!resp.ok) throw new Error(`CoinGecko price fetch failed: ${resp.status}`);
     const data = (await resp.json()) as Record<string, Record<string, number>>;
 
     for (const coinId of coinIds) {
@@ -151,7 +176,7 @@ export async function fetchPrices(
       });
     }
   } catch {
-    // Silent error — caller handles empty results
+    // Silent error after retries exhausted — caller handles empty results
   }
 
   return result;
