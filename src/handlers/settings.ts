@@ -6,6 +6,7 @@ import {
   inlineKeyboard,
 } from "../toolkit/index.js";
 import { getUser, saveUser } from "../store.js";
+import { isValidTimezone } from "../alert-monitor.js";
 import type { Session } from "../bot.js";
 
 interface SettingsSession extends Session {
@@ -69,7 +70,7 @@ composer.callbackQuery("settings:timezone", async (ctx) => {
   await ctx.answerCallbackQuery();
   ctx.session.settingsStep = "awaiting_timezone";
   await ctx.editMessageText(
-    "Enter your time zone offset (e.g. UTC, UTC+3, UTC-5, EST):",
+    "Enter your time zone (e.g. UTC+3, EST, Europe/London, Asia/Tokyo):",
     { reply_markup: inlineKeyboard([backToSettingsRow()]) },
   );
 });
@@ -77,8 +78,15 @@ composer.callbackQuery("settings:timezone", async (ctx) => {
 composer.on("message:text").filter(
   (ctx) => (ctx.session as SettingsSession).settingsStep === "awaiting_timezone",
   async (ctx) => {
-    ctx.session.settingsStep = undefined;
     const tz = ctx.message.text.trim();
+    if (!isValidTimezone(tz)) {
+      await ctx.reply(
+        "Unknown timezone. Use a UTC offset (e.g. UTC+3, UTC-5:30), an abbreviation (e.g. EST, PST, IST, JST), or an IANA identifier (e.g. America/New_York, Europe/London, Asia/Tokyo). Try again:",
+        { reply_markup: inlineKeyboard([backToSettingsRow()]) },
+      );
+      return;
+    }
+    ctx.session.settingsStep = undefined;
     const user = await getUser(ctx.from!.id);
     user.timezone = tz;
     await saveUser(user);
@@ -174,10 +182,10 @@ async function showQuietHours(ctx: SCtx, edit: true | undefined) {
   const user = await getUser(ctx.from!.id);
 
   const quickPresets = [
-    ["🤫 22:00 – 07:00", `settings:quiet_set:22:00:07:00`],
-    ["🤫 23:00 – 06:00", `settings:quiet_set:23:00:06:00`],
-    ["🤫 00:00 – 06:00", `settings:quiet_set:00:00:06:00`],
-    ["🤫 21:00 – 09:00", `settings:quiet_set:21:00:09:00`],
+    ["🤫 22:00 – 07:00", `settings:quiet_set:22:00|07:00`],
+    ["🤫 23:00 – 06:00", `settings:quiet_set:23:00|06:00`],
+    ["🤫 00:00 – 06:00", `settings:quiet_set:00:00|06:00`],
+    ["🤫 21:00 – 09:00", `settings:quiet_set:21:00|09:00`],
     ["🔕 Disable", `settings:quiet_disable`],
     ["✏️ Custom", "settings:quiet_custom"],
   ];
@@ -195,7 +203,7 @@ async function showQuietHours(ctx: SCtx, edit: true | undefined) {
   else await ctx.reply(text, { reply_markup: inlineKeyboard(rows) });
 }
 
-composer.callbackQuery(/^settings:quiet_set:(.+):(.+)$/, async (ctx) => {
+composer.callbackQuery(/^settings:quiet_set:(.+)\|(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const start = ctx.match[1];
   const end = ctx.match[2];

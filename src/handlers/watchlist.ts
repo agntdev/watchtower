@@ -119,12 +119,13 @@ composer.callbackQuery(/^watchlist:add_coin:(.+):(.+)$/, async (ctx) => {
   const coinId = ctx.match[1];
   const ticker = ctx.match[2];
 
+  const commonCoin = lookupTicker(ticker);
   const entry = {
     id: generateId(),
     telegramId: ctx.from!.id,
     coinId,
     ticker: ticker.toUpperCase(),
-    displayName: coinId,
+    displayName: commonCoin?.name ?? coinId,
     enabled: true,
     createdAt: Date.now(),
   };

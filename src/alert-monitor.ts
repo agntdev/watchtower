@@ -39,9 +39,147 @@ const TZ_OFFSETS: Record<string, number> = {
   "UTC": 0, "GMT": 0, "UTC+0": 0, "UTC-0": 0,
   "EST": -300, "EDT": -240, "CST": -360, "CDT": -300,
   "MST": -420, "MDT": -360, "PST": -480, "PDT": -420,
+  "IST": 330, "BST": 60, "CET": 60, "CEST": 120,
+  "EET": 120, "EEST": 180, "FET": 180, "MSK": 180,
+  "JST": 540, "KST": 540, "CST-ASIA": 480, "SGT": 480,
+  "AEST": 600, "AEDT": 660, "AWST": 480, "ACST": 570,
+  "NZST": 720, "NZDT": 780, "CHAST": 765,
+  "BRT": -180, "BRST": -120, "ART": -180, "CLT": -240, "PET": -300,
 };
 
-function parseTimezoneOffset(tz: string): number {
+interface IanaAlias {
+  name: string;
+  offsetMinutes: number;
+}
+
+const IANA_ALIASES: IanaAlias[] = [
+  { name: "America/New_York", offsetMinutes: -300 },
+  { name: "America/Chicago", offsetMinutes: -360 },
+  { name: "America/Denver", offsetMinutes: -420 },
+  { name: "America/Los_Angeles", offsetMinutes: -480 },
+  { name: "America/Phoenix", offsetMinutes: -420 },
+  { name: "America/Anchorage", offsetMinutes: -540 },
+  { name: "America/Adak", offsetMinutes: -600 },
+  { name: "Pacific/Honolulu", offsetMinutes: -600 },
+  { name: "America/Sao_Paulo", offsetMinutes: -180 },
+  { name: "America/Argentina/Buenos_Aires", offsetMinutes: -180 },
+  { name: "America/Lima", offsetMinutes: -300 },
+  { name: "America/Bogota", offsetMinutes: -300 },
+  { name: "America/Mexico_City", offsetMinutes: -360 },
+  { name: "America/Toronto", offsetMinutes: -300 },
+  { name: "America/Vancouver", offsetMinutes: -480 },
+  { name: "America/Moncton", offsetMinutes: -240 },
+  { name: "America/St_Johns", offsetMinutes: -210 },
+  { name: "Europe/London", offsetMinutes: 0 },
+  { name: "Europe/Dublin", offsetMinutes: 0 },
+  { name: "Europe/Lisbon", offsetMinutes: 0 },
+  { name: "Europe/Paris", offsetMinutes: 60 },
+  { name: "Europe/Berlin", offsetMinutes: 60 },
+  { name: "Europe/Rome", offsetMinutes: 60 },
+  { name: "Europe/Amsterdam", offsetMinutes: 60 },
+  { name: "Europe/Brussels", offsetMinutes: 60 },
+  { name: "Europe/Madrid", offsetMinutes: 60 },
+  { name: "Europe/Zurich", offsetMinutes: 60 },
+  { name: "Europe/Vienna", offsetMinutes: 60 },
+  { name: "Europe/Prague", offsetMinutes: 60 },
+  { name: "Europe/Warsaw", offsetMinutes: 60 },
+  { name: "Europe/Budapest", offsetMinutes: 60 },
+  { name: "Europe/Stockholm", offsetMinutes: 60 },
+  { name: "Europe/Copenhagen", offsetMinutes: 60 },
+  { name: "Europe/Oslo", offsetMinutes: 60 },
+  { name: "Europe/Helsinki", offsetMinutes: 120 },
+  { name: "Europe/Riga", offsetMinutes: 120 },
+  { name: "Europe/Vilnius", offsetMinutes: 120 },
+  { name: "Europe/Tallinn", offsetMinutes: 120 },
+  { name: "Europe/Bucharest", offsetMinutes: 120 },
+  { name: "Europe/Sofia", offsetMinutes: 120 },
+  { name: "Europe/Athens", offsetMinutes: 120 },
+  { name: "Europe/Kyiv", offsetMinutes: 120 },
+  { name: "Europe/Istanbul", offsetMinutes: 180 },
+  { name: "Europe/Moscow", offsetMinutes: 180 },
+  { name: "Europe/Minsk", offsetMinutes: 180 },
+  { name: "Africa/Cairo", offsetMinutes: 120 },
+  { name: "Africa/Lagos", offsetMinutes: 60 },
+  { name: "Africa/Johannesburg", offsetMinutes: 120 },
+  { name: "Africa/Nairobi", offsetMinutes: 180 },
+  { name: "Africa/Casablanca", offsetMinutes: 0 },
+  { name: "Asia/Jerusalem", offsetMinutes: 120 },
+  { name: "Asia/Dubai", offsetMinutes: 240 },
+  { name: "Asia/Tehran", offsetMinutes: 210 },
+  { name: "Asia/Karachi", offsetMinutes: 300 },
+  { name: "Asia/Kolkata", offsetMinutes: 330 },
+  { name: "Asia/Dhaka", offsetMinutes: 360 },
+  { name: "Asia/Bangkok", offsetMinutes: 420 },
+  { name: "Asia/Jakarta", offsetMinutes: 420 },
+  { name: "Asia/Manila", offsetMinutes: 480 },
+  { name: "Asia/Singapore", offsetMinutes: 480 },
+  { name: "Asia/Kuala_Lumpur", offsetMinutes: 480 },
+  { name: "Asia/Hong_Kong", offsetMinutes: 480 },
+  { name: "Asia/Shanghai", offsetMinutes: 480 },
+  { name: "Asia/Taipei", offsetMinutes: 480 },
+  { name: "Asia/Seoul", offsetMinutes: 540 },
+  { name: "Asia/Tokyo", offsetMinutes: 540 },
+  { name: "Australia/Sydney", offsetMinutes: 600 },
+  { name: "Australia/Melbourne", offsetMinutes: 600 },
+  { name: "Australia/Brisbane", offsetMinutes: 600 },
+  { name: "Australia/Perth", offsetMinutes: 480 },
+  { name: "Australia/Adelaide", offsetMinutes: 570 },
+  { name: "Australia/Darwin", offsetMinutes: 570 },
+  { name: "Pacific/Auckland", offsetMinutes: 720 },
+  { name: "Pacific/Fiji", offsetMinutes: 720 },
+  { name: "Pacific/Apia", offsetMinutes: 780 },
+  { name: "Pacific/Tongatapu", offsetMinutes: 780 },
+  { name: "Asia/Magadan", offsetMinutes: 660 },
+  { name: "Asia/Vladivostok", offsetMinutes: 600 },
+  { name: "Asia/Yekaterinburg", offsetMinutes: 300 },
+  { name: "Asia/Novosibirsk", offsetMinutes: 360 },
+  { name: "Asia/Krasnoyarsk", offsetMinutes: 420 },
+  { name: "Asia/Irkutsk", offsetMinutes: 480 },
+  { name: "Asia/Yakutsk", offsetMinutes: 540 },
+  { name: "Asia/Tashkent", offsetMinutes: 300 },
+  { name: "Asia/Almaty", offsetMinutes: 300 },
+  { name: "Asia/Baku", offsetMinutes: 240 },
+  { name: "Asia/Tbilisi", offsetMinutes: 240 },
+  { name: "Asia/Yerevan", offsetMinutes: 240 },
+  { name: "Asia/Riyadh", offsetMinutes: 180 },
+  { name: "Asia/Baghdad", offsetMinutes: 180 },
+  { name: "Asia/Amman", offsetMinutes: 120 },
+  { name: "Asia/Beirut", offsetMinutes: 120 },
+  { name: "Asia/Damascus", offsetMinutes: 120 },
+  { name: "Pacific/Port_Moresby", offsetMinutes: 600 },
+  { name: "Pacific/Guam", offsetMinutes: 600 },
+  { name: "Pacific/Noumea", offsetMinutes: 660 },
+  { name: "Pacific/Wallis", offsetMinutes: 720 },
+  { name: "America/Caracas", offsetMinutes: -240 },
+  { name: "America/La_Paz", offsetMinutes: -240 },
+  { name: "America/Asuncion", offsetMinutes: -240 },
+  { name: "America/Santiago", offsetMinutes: -240 },
+  { name: "America/Montevideo", offsetMinutes: -180 },
+  { name: "America/Guatemala", offsetMinutes: -360 },
+  { name: "America/Costa_Rica", offsetMinutes: -360 },
+  { name: "America/Panama", offsetMinutes: -300 },
+  { name: "America/Havana", offsetMinutes: -300 },
+  { name: "America/Jamaica", offsetMinutes: -300 },
+  { name: "America/Santo_Domingo", offsetMinutes: -240 },
+];
+
+function lookupIanaOffset(identifier: string): number | null {
+  const normalized = identifier.trim();
+  const exact = IANA_ALIASES.find((a) => a.name === normalized);
+  if (exact) return exact.offsetMinutes;
+  const caseless = IANA_ALIASES.find(
+    (a) => a.name.toLowerCase() === normalized.toLowerCase(),
+  );
+  if (caseless) return caseless.offsetMinutes;
+  if (normalized.includes("/")) {
+    const last = normalized.split("/").pop()!;
+    const city = IANA_ALIASES.find((a) => a.name.endsWith(`/${last}`));
+    if (city) return city.offsetMinutes;
+  }
+  return null;
+}
+
+export function parseTimezoneOffset(tz: string): number {
   const trimmed = tz.trim().toUpperCase();
   if (TZ_OFFSETS[trimmed] !== undefined) return TZ_OFFSETS[trimmed];
   const m = trimmed.match(/^UTC([+-]\d{1,2})(?::(\d{2}))?$/);
@@ -50,18 +188,28 @@ function parseTimezoneOffset(tz: string): number {
     const mins = m[2] ? parseInt(m[2], 10) : 0;
     return (h * 60) + (h >= 0 ? mins : -mins);
   }
+  const ianaOffset = lookupIanaOffset(tz.trim());
+  if (ianaOffset !== null) return ianaOffset;
   return 0;
 }
 
-function getLocalMinutes(tz: string): number {
-  const now = new Date();
+export function isValidTimezone(tz: string): boolean {
+  const trimmed = tz.trim().toUpperCase();
+  if (TZ_OFFSETS[trimmed] !== undefined) return true;
+  if (/^UTC([+-]\d{1,2})(?::(\d{2}))?$/.test(trimmed)) return true;
+  if (lookupIanaOffset(tz.trim()) !== null) return true;
+  return false;
+}
+
+export function getLocalMinutes(tz: string, reference?: Date): number {
+  const now = reference ?? new Date();
   const offsetMinutes = parseTimezoneOffset(tz);
   const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
   return (utcMinutes + offsetMinutes + 1440) % 1440;
 }
 
-function isInQuietHours(user: { quietHoursStart: string; quietHoursEnd: string; timezone: string }): boolean {
-  const currentMinutes = getLocalMinutes(user.timezone);
+export function isInQuietHours(user: { quietHoursStart: string; quietHoursEnd: string; timezone: string }, reference?: Date): boolean {
+  const currentMinutes = getLocalMinutes(user.timezone, reference);
 
   const parseTime = (t: string): number => {
     const [h, m] = t.split(":").map(Number);

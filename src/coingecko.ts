@@ -90,6 +90,48 @@ export function lookupTicker(ticker: string): CoinInfo | null {
   return { coinId: entry.id, ticker: ticker.toUpperCase(), name: entry.name };
 }
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+  }
+  return dp[m][n];
+}
+
+function fuzzyMatchCoins(query: string): CoinInfo[] {
+  const q = query.toLowerCase();
+  const scored: { info: CoinInfo; score: number }[] = [];
+
+  for (const [ticker, info] of Object.entries(TICKER_MAP)) {
+    const tickerDist = levenshtein(q, ticker);
+    const nameDist = levenshtein(q, info.name.toLowerCase());
+    const minDist = Math.min(tickerDist, nameDist);
+
+    const maxLen = Math.max(q.length, ticker.length, info.name.length);
+    const similarity = 1 - minDist / maxLen;
+
+    if (similarity >= 0.5) {
+      scored.push({
+        info: { coinId: info.id, ticker: ticker.toUpperCase(), name: info.name },
+        score: similarity,
+      });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map((s) => s.info);
+}
+
 export async function searchCoins(query: string): Promise<CoinInfo[]> {
   const q = query.toLowerCase().trim();
   const direct = lookupTicker(q);
@@ -102,6 +144,9 @@ export async function searchCoins(query: string): Promise<CoinInfo[]> {
     }
   }
   if (results.length > 0) return results.slice(0, 10);
+
+  const fuzzy = fuzzyMatchCoins(q);
+  if (fuzzy.length > 0) return fuzzy.slice(0, 10);
 
   try {
     const resp = await fetch(`${COINGECKO_BASE}/search?query=${encodeURIComponent(q)}`);
@@ -124,11 +169,12 @@ export async function fetchPrices(
   const result = new Map<string, CoinPrice>();
   if (coinIds.length === 0) return result;
 
+  const url = `${COINGECKO_BASE}/simple/price?ids=${coinIds.join(",")}&vs_currencies=${fiat}&include_24hr_change=true`;
+
+  const resp = await fetchWithRetry(url, 3);
+  if (!resp) return result;
+
   try {
-    const resp = await fetch(
-      `${COINGECKO_BASE}/simple/price?ids=${coinIds.join(",")}&vs_currencies=${fiat}&include_24hr_change=true`,
-    );
-    if (!resp.ok) throw new Error(`CoinGecko price fetch failed: ${resp.status}`);
     const data = (await resp.json()) as Record<string, Record<string, number>>;
 
     for (const coinId of coinIds) {
@@ -155,6 +201,39 @@ export async function fetchPrices(
   }
 
   return result;
+}
+
+async function fetchWithRetry(url: string, retries: number): Promise<Response | null> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 10_000);
+      try {
+        const resp = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(timeout);
+        if (resp.ok) return resp;
+        if (resp.status >= 500 && attempt < retries - 1) {
+          await sleep((attempt + 1) * 2000);
+          continue;
+        }
+        return null;
+      } catch (inner) {
+        clearTimeout(timeout);
+        throw inner;
+      }
+    } catch {
+      if (attempt < retries - 1) {
+        await sleep((attempt + 1) * 2000);
+        continue;
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function fetchSinglePrice(coinId: string, fiat: string): Promise<CoinPrice | null> {
