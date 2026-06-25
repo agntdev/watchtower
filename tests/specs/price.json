@@ -1,0 +1,24 @@
+[
+  {
+    "name": "/price on empty watchlist",
+    "steps": [
+      {
+        "send": { "text": "/price" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Your watchlist is empty. Add coins first to check prices." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "price menu button shows empty watchlist via edit",
+    "steps": [
+      {
+        "send": { "callback": "price:show" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Your watchlist is empty. Add coins first to check prices." } }
+        ]
+      }
+    ]
+  }
+]

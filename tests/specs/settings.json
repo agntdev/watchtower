@@ -1,0 +1,46 @@
+[
+  {
+    "name": "/settings shows default settings",
+    "steps": [
+      {
+        "send": { "text": "/settings" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "⚙️ Your Settings:\n\nTime zone: UTC\nCurrency: USD\nCooldown: 60 min\nQuiet hours: 22:00 – 07:00\nMorning summary: Disabled" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/quiet_hours shows current quiet hours",
+    "steps": [
+      {
+        "send": { "text": "/quiet_hours" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "🤫 Quiet Hours: 22:00 – 07:00\n\nAlerts are suppressed during these hours. Select a preset or set custom:" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/summary_time shows current summary setting",
+    "steps": [
+      {
+        "send": { "text": "/summary_time" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "🌅 Morning Summary: Disabled\n\nSet a time to receive daily price summaries:" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "settings menu button shows default settings via edit",
+    "steps": [
+      {
+        "send": { "callback": "settings:show" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "⚙️ Your Settings:\n\nTime zone: UTC\nCurrency: USD\nCooldown: 60 min\nQuiet hours: 22:00 – 07:00\nMorning summary: Disabled" } }
+        ]
+      }
+    ]
+  }
+]

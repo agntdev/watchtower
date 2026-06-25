@@ -1,0 +1,46 @@
+[
+  {
+    "name": "/list shows empty watchlist",
+    "steps": [
+      {
+        "send": { "text": "/list" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Your watchlist is empty. Tap ➕ Add to track a coin." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/add shows coin selection",
+    "steps": [
+      {
+        "send": { "text": "/add" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Select a coin to track, or search for a custom one:" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/remove on empty watchlist shows nothing to remove",
+    "steps": [
+      {
+        "send": { "text": "/remove" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Your watchlist is empty — nothing to remove." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "watchlist menu button shows empty watchlist",
+    "steps": [
+      {
+        "send": { "callback": "watchlist:list" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Your watchlist is empty. Tap ➕ Add to track a coin." } }
+        ]
+      }
+    ]
+  }
+]
