@@ -677,4 +677,35 @@ composer.callbackQuery(/^alerts:do_delete_percent:(.+):no$/, async (ctx) => {
   });
 });
 
+composer.callbackQuery(/^alert:disable:(threshold|percent):(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery({ text: "Alert disabled." });
+  const type = ctx.match[1];
+  const id = ctx.match[2];
+  try {
+    if (type === "threshold") {
+      await updateThresholdAlert(ctx.from!.id, id, { enabled: false });
+    } else {
+      await updatePercentMoveRule(ctx.from!.id, id, { enabled: false });
+    }
+  } catch {
+    // alert may have been deleted
+  }
+});
+
+composer.callbackQuery(/^alert:snooze:(threshold|percent):(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery({ text: "Alert snoozed for 1 hour." });
+  const type = ctx.match[1];
+  const id = ctx.match[2];
+  const snoozeUntil = Date.now() + 60 * 60 * 1000;
+  try {
+    if (type === "threshold") {
+      await updateThresholdAlert(ctx.from!.id, id, { lastTriggeredAt: snoozeUntil });
+    } else {
+      await updatePercentMoveRule(ctx.from!.id, id, { lastTriggeredAt: snoozeUntil });
+    }
+  } catch {
+    // alert may have been deleted
+  }
+});
+
 export default composer;
