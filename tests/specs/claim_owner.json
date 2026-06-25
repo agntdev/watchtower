@@ -1,0 +1,15 @@
+[
+  {
+    "name": "/claim_owner starts claim flow",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  }
+]

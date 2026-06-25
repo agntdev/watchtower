@@ -1,0 +1,15 @@
+[
+  {
+    "name": "/settings shows current settings",
+    "steps": [
+      {
+        "send": { "text": "/settings" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  }
+]

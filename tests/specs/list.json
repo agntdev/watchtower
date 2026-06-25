@@ -1,0 +1,16 @@
+[
+  {
+    "name": "/list shows empty watchlist",
+    "steps": [
+      {
+        "send": { "text": "/list" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Your watchlist is empty. Tap the menu to add coins." }
+          }
+        ]
+      }
+    ]
+  }
+]

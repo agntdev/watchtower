@@ -6,7 +6,21 @@ import { createBot, type BotContext } from "./toolkit/index.js";
 // bot grows. Durable domain data must NOT live here — use the toolkit's
 // persistent storage (see AGENTS.md).
 export interface Session {
-  // example: step?: "awaiting_amount";
+  messageHandled?: boolean;
+  watchlistSearching?: boolean;
+  priceSearching?: boolean;
+  settingThresholdTicker?: string;
+  settingThresholdDir?: string;
+  settingPercentRuleTicker?: string;
+  settingPercentRuleDir?: string;
+  settingPercentRulePct?: boolean;
+  settingQuietHoursStart?: boolean;
+  settingQuietHoursEnd?: boolean;
+  settingSummaryTime?: boolean;
+  settingTimezone?: boolean;
+  settingFiat?: boolean;
+  settingCooldown?: boolean;
+  claimOwnerCode?: string;
 }
 
 export type Ctx = BotContext<Session>;
@@ -44,7 +58,14 @@ export async function buildBot(token: string) {
     bot.use(mod.default);
   }
 
-  bot.on("message", (ctx) => ctx.reply("Sorry, I didn't understand that. Try /help."));
+  bot.on("message", async (ctx) => {
+    if (ctx.message?.text?.startsWith("/")) return;
+    if (ctx.session.messageHandled) {
+      ctx.session.messageHandled = false;
+      return;
+    }
+    await ctx.reply("Sorry, I didn't understand that. Try /help.");
+  });
 
   return bot;
 }

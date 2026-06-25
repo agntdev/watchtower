@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Settings display and quiet hours configuration",
+    "steps": [
+      {
+        "send": { "text": "/settings" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      },
+      {
+        "send": { "text": "/quiet_hours" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      },
+      {
+        "send": { "text": "/summary_time" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  }
+]
