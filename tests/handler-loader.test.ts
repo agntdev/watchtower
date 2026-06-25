@@ -72,4 +72,25 @@ describe("buildBot handler loader", () => {
     expect(suite.failed).toBe(0);
     expect(suite.passed).toBeGreaterThan(0);
   });
+
+  it("alert lifecycle: creation, listing, snooze/disable handlers", async () => {
+    const specs = loadSpecs("alert-lifecycle");
+    const suite = await runSpecs(() => buildBot("test-token"), specs);
+    expect(suite.failed).toBe(0);
+    expect(suite.passed).toBeGreaterThan(0);
+  });
+
+  it("settings changes: quiet hours, timezone, cooldown, summary", async () => {
+    const specs = loadSpecs("settings-changes");
+    const suite = await runSpecs(() => buildBot("test-token"), specs);
+    expect(suite.failed).toBe(0);
+    expect(suite.passed).toBeGreaterThan(0);
+  });
+
+  it("admin analytics: owner dashboard after claiming", async () => {
+    const specs = loadSpecs("admin-analytics");
+    const suite = await runSpecs(() => buildBot("test-token"), specs);
+    expect(suite.failed).toBe(0);
+    expect(suite.passed).toBeGreaterThan(0);
+  });
 });

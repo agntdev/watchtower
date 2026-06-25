@@ -1,0 +1,163 @@
+[
+  {
+    "name": "set custom quiet hours via text input",
+    "steps": [
+      {
+        "send": { "callback": "settings:quiet_custom" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "Enter quiet hours START time (HH:MM format, e.g. 22:00):" } }
+        ]
+      },
+      {
+        "send": { "text": "23:00" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Enter quiet hours END time (HH:MM format, e.g. 07:00):" } }
+        ]
+      },
+      {
+        "send": { "text": "06:00" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Quiet hours set to 23:00 – 06:00." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set morning summary time",
+    "steps": [
+      {
+        "send": { "callback": "settings:summary_set:08:00" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Morning summary set to 08:00 daily." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "disable morning summary",
+    "steps": [
+      {
+        "send": { "callback": "settings:summary_disable" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Morning summary disabled." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set custom cooldown",
+    "steps": [
+      {
+        "send": { "callback": "settings:cooldown" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "text": "30" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Alert cooldown set to 30 minutes." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "reject invalid cooldown value",
+    "steps": [
+      {
+        "send": { "callback": "settings:cooldown" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "2" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Please enter a valid number (minimum 5 minutes):" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "select preset quiet hours",
+    "steps": [
+      {
+        "send": { "callback": "settings:quiet_set:22:00|07:00" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Quiet hours set to 22:00 – 07:00." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "disable quiet hours",
+    "steps": [
+      {
+        "send": { "callback": "settings:quiet_disable" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Quiet hours disabled. Alerts will fire at any time." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set custom summary time via text",
+    "steps": [
+      {
+        "send": { "callback": "settings:summary_custom" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "text": "06:30" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Morning summary set to 06:30 daily." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set timezone with valid UTC format",
+    "steps": [
+      {
+        "send": { "callback": "settings:timezone" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "UTC+3" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Time zone set to UTC+3." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set timezone with IANA identifier",
+    "steps": [
+      {
+        "send": { "callback": "settings:timezone" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "Asia/Tokyo" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ Time zone set to Asia/Tokyo." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "reject invalid timezone",
+    "steps": [
+      {
+        "send": { "callback": "settings:timezone" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "Mars/Olympus" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      }
+    ]
+  }
+]

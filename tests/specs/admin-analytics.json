@@ -1,0 +1,43 @@
+[
+  {
+    "name": "/admin after claiming shows dashboard",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/admin" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "admin callback button opens dashboard",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "admin:show" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "claim_owner succeeds when already claimed by same user",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "✅ You are now the bot owner. Use /admin to view analytics." } }
+        ]
+      }
+    ]
+  }
+]

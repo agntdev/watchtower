@@ -1,0 +1,125 @@
+[
+  {
+    "name": "add coin and create threshold alert with direction flow",
+    "steps": [
+      {
+        "send": { "callback": "watchlist:add_coin:bitcoin:BTC" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Added BTC to your watchlist." } }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:threshold_coin:bitcoin:BTC" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "text": "50000" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Set direction for BTC at $50,000:" } }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:threshold_dir_set:above" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "⚡ Threshold alert set: BTC ↑ above $50,000" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "add coin and create percent move rule",
+    "steps": [
+      {
+        "send": { "callback": "watchlist:add_coin:ethereum:ETH" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "✅ Added ETH to your watchlist." } }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:percent_coin:ethereum:ETH" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "text": "10" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:percent_tf:ethereum:ETH:10:240" },
+        "expect": [
+          { "method": "editMessageText" }
+        ]
+      },
+      {
+        "send": { "callback": "alerts:percent_dir_set:ethereum:ETH:10:240:both" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "📈 % Move alert set: ETH ↕ 10% / 4h" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "snooze handler accepts snooze callback",
+    "steps": [
+      {
+        "send": { "callback": "watchlist:add_coin:bitcoin:BTC" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "alerts:threshold_coin:bitcoin:BTC" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "80000" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "alerts:threshold_dir_set:above" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "alert:snooze:threshold:__invalid__" },
+        "expect": [{ "method": "answerCallbackQuery", "payload": { "text": "Alert snoozed for 1 hour." } }]
+      }
+    ]
+  },
+  {
+    "name": "disable handler accepts disable callback",
+    "steps": [
+      {
+        "send": { "callback": "alert:disable:percent:__invalid__" },
+        "expect": [{ "method": "answerCallbackQuery", "payload": { "text": "Alert disabled." } }]
+      }
+    ]
+  },
+  {
+    "name": "toggle threshold alert off",
+    "steps": [
+      {
+        "send": { "callback": "watchlist:add_coin:bitcoin:BTC" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "alerts:threshold_coin:bitcoin:BTC" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "90000" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "alerts:threshold_dir_set:below" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "alerts:manage_threshold" },
+        "expect": [{ "method": "editMessageText", "payload": { "text": "Manage your threshold alerts:" } }]
+      }
+    ]
+  }
+]

@@ -22,9 +22,10 @@ import { lookupTicker, searchCoins } from "../coingecko.js";
 import type { Session } from "../bot.js";
 
 interface AlertsSession extends Session {
-  alertsStep?: "threshold_pick_coin" | "threshold_value" | "percent_pick_coin" | "percent_value" | "percent_timeframe" | "percent_direction";
+  alertsStep?: "threshold_pick_coin" | "threshold_value" | "threshold_direction" | "percent_pick_coin" | "percent_value" | "percent_timeframe" | "percent_direction";
   thresholdTicker?: string;
   thresholdCoinId?: string;
+  thresholdValue?: number;
   percentTicker?: string;
   percentCoinId?: string;
 }
@@ -219,35 +220,64 @@ composer.on("message:text").filter(
       return;
     }
 
-    const ticker = ctx.session.thresholdTicker!;
-    ctx.session.alertsStep = undefined;
-
-    const alert = {
-      id: generateId(),
-      telegramId: ctx.from!.id,
-      coinId: ctx.session.thresholdCoinId!,
-      ticker,
-      direction: "below" as const,
-      threshold: value,
-      enabled: true,
-      createdAt: Date.now(),
-      lastTriggeredAt: null,
-    };
-
-    await saveThresholdAlert(ctx.from!.id, alert);
+    ctx.session.thresholdValue = value;
+    ctx.session.alertsStep = "threshold_direction";
 
     await ctx.reply(
-      `⚡ Threshold alert set: ${ticker} at $${value.toLocaleString("en")}`,
+      `Set direction for ${ctx.session.thresholdTicker!.toUpperCase()} at $${value.toLocaleString("en")}:`,
       {
         reply_markup: inlineKeyboard([
-          [inlineButton("Set Direction", `alerts:threshold_dir:${alert.id}`)],
-          [inlineButton("📋 View Alerts", "alerts:list")],
-          backRow(),
+          [inlineButton("↑ Above", `alerts:threshold_dir_set:above`),
+           inlineButton("↓ Below", `alerts:threshold_dir_set:below`)],
+          backToAlertsRow(),
         ]),
       },
     );
   },
 );
+
+composer.callbackQuery(/^alerts:threshold_dir_set:(above|below)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const direction = ctx.match[1] as "above" | "below";
+
+  if (!ctx.session.thresholdCoinId || !ctx.session.thresholdTicker || !ctx.session.thresholdValue) {
+    await ctx.editMessageText(
+      "Session expired. Please start again.",
+      { reply_markup: inlineKeyboard([backToAlertsRow()]) },
+    );
+    return;
+  }
+
+  const ticker = ctx.session.thresholdTicker!;
+  const value = ctx.session.thresholdValue!;
+  ctx.session.alertsStep = undefined;
+  ctx.session.thresholdValue = undefined;
+
+  const alert = {
+    id: generateId(),
+    telegramId: ctx.from!.id,
+    coinId: ctx.session.thresholdCoinId!,
+    ticker,
+    direction,
+    threshold: value,
+    enabled: true,
+    createdAt: Date.now(),
+    lastTriggeredAt: null,
+  };
+
+  await saveThresholdAlert(ctx.from!.id, alert);
+
+  const dirLabel = direction === "above" ? "↑ above" : "↓ below";
+  await ctx.editMessageText(
+    `⚡ Threshold alert set: ${ticker.toUpperCase()} ${dirLabel} $${value.toLocaleString("en")}`,
+    {
+      reply_markup: inlineKeyboard([
+        [inlineButton("📋 View Alerts", "alerts:list")],
+        backRow(),
+      ]),
+    },
+  );
+});
 
 composer.callbackQuery(/^alerts:threshold_dir:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
