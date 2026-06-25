@@ -10,6 +10,7 @@ import {
   setOwnerId,
   getUserCount,
   getTotalAlertCount,
+  getTopAlertTickers,
 } from "../store.js";
 
 registerMainMenuItem({ label: "🔐 Admin", data: "admin:show", order: 90 });
@@ -48,12 +49,20 @@ composer.callbackQuery("admin:show", async (ctx) => {
 async function showAdmin(ctx: Ctx, edit: true | undefined) {
   const userCount = await getUserCount();
   const alertCount = await getTotalAlertCount();
+  const topAlerts = await getTopAlertTickers(5);
 
-  const text =
+  let text =
     `🔐 Owner Dashboard\n\n` +
     `Total users: ${userCount}\n` +
     `Total alerts triggered: ${alertCount}\n` +
     `Bot status: running`;
+
+  if (topAlerts.length > 0) {
+    text += `\n\n📊 Top alerted coins:\n`;
+    for (const t of topAlerts) {
+      text += `${t.ticker}: ${t.count} alerts\n`;
+    }
+  }
 
   const keyboard = inlineKeyboard([
     [inlineButton("🔄 Refresh", "admin:show")],

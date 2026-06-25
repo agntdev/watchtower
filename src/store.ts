@@ -218,6 +218,26 @@ export async function getTotalAlertCount(): Promise<number> {
   return total;
 }
 
+export async function getTopAlertTickers(limit = 5): Promise<{ ticker: string; count: number }[]> {
+  const alertKeys = await storeKeys(`${AH}*`);
+  const counts = new Map<string, number>();
+  for (const k of alertKeys) {
+    const raw = await get(k);
+    if (raw) {
+      try {
+        const records = JSON.parse(raw) as AlertHistoryRecord[];
+        for (const r of records) {
+          counts.set(r.ticker, (counts.get(r.ticker) ?? 0) + 1);
+        }
+      } catch { /* skip corrupt */ }
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([ticker, count]) => ({ ticker, count }));
+}
+
 export async function getAllUserIds(): Promise<number[]> {
   const userKeys = await storeKeys(`${USR}*`);
   return userKeys.map((k) => parseInt(k.slice(USR.length), 10)).filter((n) => !isNaN(n));

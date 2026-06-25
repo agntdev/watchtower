@@ -12,6 +12,7 @@ import {
   getWatchlistEntries,
 } from "./store.js";
 import { fetchPrices } from "./coingecko.js";
+import { inlineButton, inlineKeyboard } from "./toolkit/index.js";
 
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 let summaryInterval: ReturnType<typeof setInterval> | null = null;
@@ -34,9 +35,33 @@ export function stopAlertMonitor() {
   botInstance = null;
 }
 
-function isInQuietHours(user: { quietHoursStart: string; quietHoursEnd: string }): boolean {
+const TZ_OFFSETS: Record<string, number> = {
+  "UTC": 0, "GMT": 0, "UTC+0": 0, "UTC-0": 0,
+  "EST": -300, "EDT": -240, "CST": -360, "CDT": -300,
+  "MST": -420, "MDT": -360, "PST": -480, "PDT": -420,
+};
+
+function parseTimezoneOffset(tz: string): number {
+  const trimmed = tz.trim().toUpperCase();
+  if (TZ_OFFSETS[trimmed] !== undefined) return TZ_OFFSETS[trimmed];
+  const m = trimmed.match(/^UTC([+-]\d{1,2})(?::(\d{2}))?$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    const mins = m[2] ? parseInt(m[2], 10) : 0;
+    return (h * 60) + (h >= 0 ? mins : -mins);
+  }
+  return 0;
+}
+
+function getLocalMinutes(tz: string): number {
   const now = new Date();
-  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const offsetMinutes = parseTimezoneOffset(tz);
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return (utcMinutes + offsetMinutes + 1440) % 1440;
+}
+
+function isInQuietHours(user: { quietHoursStart: string; quietHoursEnd: string; timezone: string }): boolean {
+  const currentMinutes = getLocalMinutes(user.timezone);
 
   const parseTime = (t: string): number => {
     const [h, m] = t.split(":").map(Number);
@@ -120,6 +145,12 @@ async function checkAlerts() {
           `🚨 ${alert.ticker} is ${dirLabel} $${alert.threshold.toLocaleString("en")}\n` +
           `Current price: $${price.price.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ` +
           `(${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(2)}%)`,
+          {
+            reply_markup: inlineKeyboard([[
+              inlineButton("🔕 Snooze 1h", `alert:snooze:threshold:${alert.id}`),
+              inlineButton("⛔ Disable", `alert:disable:threshold:${alert.id}`),
+            ]]),
+          },
         );
       } catch {
         // User may have blocked bot
@@ -197,6 +228,12 @@ async function checkAlerts() {
           uid,
           `🚨 ${rule.ticker} moved ${dirLabel} ${absPct.toFixed(1)}% in ${tfLabel}\n` +
           `Current price: $${price.price.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`,
+          {
+            reply_markup: inlineKeyboard([[
+              inlineButton("🔕 Snooze 1h", `alert:snooze:percent:${rule.id}`),
+              inlineButton("⛔ Disable", `alert:disable:percent:${rule.id}`),
+            ]]),
+          },
         );
       } catch {
         // User may have blocked bot
@@ -209,12 +246,16 @@ async function checkMorningSummaries() {
   if (!botInstance) return;
 
   const allUserIds = await getAllUserIds();
-  const now = new Date();
-  const currentTime = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
 
   for (const uid of allUserIds) {
     const user = await getUser(uid);
-    if (!user.summaryTime || user.summaryTime !== currentTime) continue;
+    if (!user.summaryTime) continue;
+
+    const localMinutes = getLocalMinutes(user.timezone);
+    const localH = Math.floor(localMinutes / 60);
+    const localM = localMinutes % 60;
+    const localTime = `${String(localH).padStart(2, "0")}:${String(localM).padStart(2, "0")}`;
+    if (user.summaryTime !== localTime) continue;
 
     const entries = await getWatchlistEntries(uid);
     if (entries.length === 0) continue;
