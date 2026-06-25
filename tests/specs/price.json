@@ -1,0 +1,18 @@
+[
+  {
+    "name": "/price without ticker shows empty watchlist message",
+    "steps": [
+      {
+        "send": { "text": "/price" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Your watchlist is empty. Tap the menu to add coins, or use /price TICKER to check one."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

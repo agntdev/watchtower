@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Alert configuration flow with empty watchlist",
+    "steps": [
+      {
+        "send": { "text": "/alerts" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "No alerts configured yet. Tap a button below to create one." }
+          }
+        ]
+      },
+      {
+        "send": { "text": "/set_threshold" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Add coins to your watchlist first, then create alerts for them."
+            }
+          }
+        ]
+      },
+      {
+        "send": { "text": "/set_percent_rule" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Add coins to your watchlist first, then create percent-move alerts."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

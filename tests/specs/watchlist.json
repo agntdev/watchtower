@@ -1,0 +1,49 @@
+[
+  {
+    "name": "Watchlist full lifecycle: add via command, list, remove",
+    "steps": [
+      {
+        "send": { "text": "/list" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Your watchlist is empty. Tap the menu to add coins." }
+          }
+        ]
+      },
+      {
+        "send": { "text": "/add BTC" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      },
+      {
+        "send": { "text": "/list" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      },
+      {
+        "send": { "text": "/remove BTC.B" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      },
+      {
+        "send": { "text": "/list" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Your watchlist is empty. Tap the menu to add coins." }
+          }
+        ]
+      }
+    ]
+  }
+]

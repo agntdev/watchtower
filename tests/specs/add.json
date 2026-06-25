@@ -1,0 +1,34 @@
+[
+  {
+    "name": "/add shows coin picker",
+    "steps": [
+      {
+        "send": { "text": "/add" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Add a coin to your watchlist. Tap a popular coin or type /add TICKER:"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/add with unknown ticker",
+    "steps": [
+      {
+        "send": { "text": "/add FAKECOIN" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "No coins found matching \"FAKECOIN\". Check the ticker and try again."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

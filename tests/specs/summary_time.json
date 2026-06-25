@@ -1,0 +1,15 @@
+[
+  {
+    "name": "/summary_time shows current setting",
+    "steps": [
+      {
+        "send": { "text": "/summary_time" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  }
+]

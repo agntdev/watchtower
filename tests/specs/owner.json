@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Owner claim flow: non-owner sees admin denied",
+    "steps": [
+      {
+        "send": { "text": "/admin" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "This area is reserved for the bot owner.\n\nUse /claim_owner to claim ownership."
+            }
+          }
+        ]
+      },
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Owner can view admin after claiming",
+    "steps": [
+      {
+        "send": { "text": "/claim_owner" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      },
+      {
+        "send": { "text": "AAAAAA" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Code did not match. Use /claim_owner to try again."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

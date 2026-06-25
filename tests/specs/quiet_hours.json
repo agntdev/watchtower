@@ -1,0 +1,15 @@
+[
+  {
+    "name": "/quiet_hours shows current quiet hours",
+    "steps": [
+      {
+        "send": { "text": "/quiet_hours" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  }
+]
